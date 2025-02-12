@@ -3,7 +3,7 @@ import { DatePicker } from './DatePicker';
 import { searchFlights } from '../utils/apiService';
 import { isValidFutureDate, formatDateToString } from '../utils/utils';
 
-const SearchForm = () => {
+const SearchForm = ({ onSearch }) => { // Add onSearch prop
   const [searchData, setSearchData] = useState({
     from: '',
     to: '',
@@ -12,10 +12,17 @@ const SearchForm = () => {
     passengers: 1,
     cabinClass: 'economy'
   });
+  const [loading, setLoading] = useState(false); // Add loading state
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Basic validation
+    if (!searchData.from || !searchData.to) {
+      alert('Please enter departure and arrival airports');
+      return;
+    }
+
     // Validate dates
     if (!isValidFutureDate(searchData.departDate)) {
       alert('Please select a valid departure date');
@@ -34,9 +41,16 @@ const SearchForm = () => {
     };
 
     try {
-      await searchFlights(formattedData);
+      setLoading(true);
+      const results = await searchFlights(formattedData);
+      if (onSearch) {
+        onSearch(results);
+      }
     } catch (error) {
       console.error('Error submitting search:', error);
+      alert('Error searching flights. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -93,9 +107,14 @@ const SearchForm = () => {
         </div>
         <button 
           type="submit"
-          className="w-full md:w-auto px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          disabled={loading}
+          className={`w-full md:w-auto px-6 py-2 ${
+            loading 
+              ? 'bg-gray-400 cursor-not-allowed' 
+              : 'bg-blue-600 hover:bg-blue-700'
+          } text-white rounded`}
         >
-          Search Flights
+          {loading ? 'Searching...' : 'Search Flights'}
         </button>
       </form>
     </div>
