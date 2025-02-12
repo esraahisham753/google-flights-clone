@@ -1,4 +1,4 @@
-const API_KEY = 'YOUR_RAPID_API_KEY';
+const API_KEY = import.meta.env.VITE_RAPID_API_KEY;
 
 export const searchFlights = async (searchParams) => {
   const options = {

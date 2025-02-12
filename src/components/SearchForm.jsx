@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { DatePicker } from './DatePicker';
+import { searchFlights } from '../utils/apiService';
+import { isValidFutureDate, formatDateToString } from '../utils/utils';
 
 const SearchForm = () => {
   const [searchData, setSearchData] = useState({
@@ -13,7 +15,29 @@ const SearchForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // API call will go here
+    
+    // Validate dates
+    if (!isValidFutureDate(searchData.departDate)) {
+      alert('Please select a valid departure date');
+      return;
+    }
+
+    if (searchData.returnDate && !isValidFutureDate(searchData.returnDate)) {
+      alert('Please select a valid return date');
+      return;
+    }
+
+    const formattedData = {
+      ...searchData,
+      departDate: formatDateToString(searchData.departDate),
+      returnDate: formatDateToString(searchData.returnDate)
+    };
+
+    try {
+      await searchFlights(formattedData);
+    } catch (error) {
+      console.error('Error submitting search:', error);
+    }
   };
 
   return (
