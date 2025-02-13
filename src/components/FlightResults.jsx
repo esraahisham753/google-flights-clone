@@ -1,13 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 
 const FlightResults = ({ flights }) => {
-  console.log('FlightResults props:', flights);
+  const [displayCount, setDisplayCount] = useState(3);
 
   // Early return if flights is not provided
   if (!flights || !flights.data || !flights.data.itineraries) {
     return <div className="text-center text-gray-600">Loading flights...</div>;
   }
+
+  const visibleFlights = flights.data.itineraries.slice(0, displayCount);
+  const hasMoreFlights = displayCount < flights.data.itineraries.length;
+
+  const handleShowMore = () => {
+    setDisplayCount(flights.data.itineraries.length);
+  };
 
   const formatDateTime = (dateTimeStr) => {
     try {
@@ -52,7 +59,7 @@ const FlightResults = ({ flights }) => {
         Found {flights.data.itineraries.length} flights
       </div>
 
-      {flights.data.itineraries.map((itinerary) => (
+      {visibleFlights.map((itinerary) => (
         <div key={itinerary.id || Math.random()} className="bg-white p-6 rounded-lg shadow-md">
           <div className="flex justify-between items-center mb-4">
             <div className="text-2xl font-bold text-blue-600">
@@ -120,6 +127,17 @@ const FlightResults = ({ flights }) => {
           ))}
         </div>
       ))}
+
+      {hasMoreFlights && (
+        <div className="text-center mt-6">
+          <button
+            onClick={handleShowMore}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition duration-200"
+          >
+            Show {flights.data.itineraries.length - displayCount} More Flights
+          </button>
+        </div>
+      )}
     </div>
   );
 };

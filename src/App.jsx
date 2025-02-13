@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import SearchForm from './components/SearchForm';
 import FlightResults from './components/FlightResults';
+import skyBanner from '../src/assets/sky-banner.jpg'; // Update path as needed
 
 const App = () => {
   const [searchResults, setSearchResults] = useState(null);
@@ -31,26 +32,48 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
-      <div className="container mx-auto px-4">
-        <h1 className="text-3xl font-bold text-center mb-8">Flight Search</h1>
-        <SearchForm onSearch={handleSearchResults} />
-        {isLoading && (
-          <div className="text-center py-4">
-            <p>Searching for flights...</p>
-          </div>
-        )}
-        {searchResults && searchResults.data?.itineraries && (
-          <div className="mt-4">
-            <h2 className="text-xl font-semibold mb-2">
-              Found {searchResults.data.itineraries.length} Flights
-            </h2>
-            <FlightResults 
-              flights={searchResults} 
-              onSelectFlight={(flight) => console.log('Selected flight:', flight)}
-            />
-          </div>
-        )}
+    <div className="min-h-screen bg-gray-100">
+      {/* Banner Section */}
+      <div className="relative h-32 w-full">
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `url(${skyBanner})`,
+          }}
+        >
+          {/* Overlay for transparency */}
+          <div className="absolute inset-0 bg-blue-900/30"></div>
+        </div>
+        
+        {/* Header Content */}
+        <div className="relative z-10 h-full flex items-center justify-center">
+          <h1 className="text-4xl font-bold text-white tracking-wide">
+            FLIGHTS
+          </h1>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 -mt-8">
+        <div className="relative z-20">
+          <SearchForm onSearch={handleSearchResults} />
+          {isLoading && (
+            <div className="text-center py-4">
+              <p>Searching for flights...</p>
+            </div>
+          )}
+          {searchResults && searchResults.data?.itineraries && (
+            <div className="mt-4">
+              <h2 className="text-xl font-semibold mb-2">
+                Found {searchResults.data.itineraries.length} Flights
+              </h2>
+              <FlightResults 
+                flights={searchResults} 
+                onSelectFlight={(flight) => console.log('Selected flight:', flight)}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

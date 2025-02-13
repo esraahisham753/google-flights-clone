@@ -13,8 +13,10 @@ const SearchForm = ({ onSearch }) => {
     departDate: new Date(),
     returnDate: null,
     passengers: 1,
-    cabinClass: 'economy'
+    cabinClass: '' // Set default to empty string
   });
+
+  const [tripType, setTripType] = useState('round'); // 'round' or 'one-way'
 
   const [suggestions, setSuggestions] = useState({
     from: [],
@@ -95,6 +97,14 @@ const SearchForm = ({ onSearch }) => {
     }));
   };
 
+  const handleTripTypeChange = (e) => {
+    const newTripType = e.target.value;
+    setTripType(newTripType);
+    if (newTripType === 'one-way') {
+      setSearchData(prev => ({ ...prev, returnDate: null }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -110,11 +120,16 @@ const SearchForm = ({ onSearch }) => {
 
     try {
       setLoading(true);
-      // Format the date before sending to API
+      // Format the date and filter out empty cabinClass
       const formattedData = {
         ...searchData,
         departDate: formatDateToString(searchData.departDate)
       };
+
+      // Remove cabinClass if it's empty
+      if (!formattedData.cabinClass) {
+        delete formattedData.cabinClass;
+      }
       
       const results = await searchFlights(formattedData);
       onSearch(results);
@@ -129,17 +144,34 @@ const SearchForm = ({ onSearch }) => {
   return (
     <div className="max-w-6xl mx-auto p-4 bg-white rounded-lg shadow-md">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Trip Type Selector */}
+        <div className="mb-4">
+          <select
+            value={tripType}
+            onChange={handleTripTypeChange}
+            className="p-2 text-sm text-gray-600 border rounded bg-gray-50 hover:bg-gray-100 transition-colors"
+          >
+            <option value="round">Round Trip</option>
+            <option value="one-way">One Way</option>
+          </select>
+        </div>
+
+        {/* Main search inputs - 4 columns on large screens, 2 on medium, 1 on small */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* From Field */}
           <div className="relative" ref={el => suggestionsRef.current.from = el}>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              From
+            </label>
             <input
               type="text"
-              placeholder="From (e.g., New York)"
+              placeholder="e.g., New York"
               className="p-2 border rounded w-full"
               value={searchData.from}
               onChange={(e) => handleInputChange(e, 'from')}
             />
             {showSuggestions.from && suggestions.from.length > 0 && (
-              <div className="absolute z-10 w-full bg-white border rounded-md shadow-lg mt-1">
+              <div className="absolute z-20 w-full bg-white border rounded-md shadow-lg mt-1">
                 {suggestions.from.map((suggestion, index) => (
                   <div
                     key={suggestion.navigation.entityId}
@@ -154,16 +186,20 @@ const SearchForm = ({ onSearch }) => {
             )}
           </div>
 
+          {/* To Field */}
           <div className="relative" ref={el => suggestionsRef.current.to = el}>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              To
+            </label>
             <input
               type="text"
-              placeholder="To (e.g., London)"
+              placeholder="e.g., London"
               className="p-2 border rounded w-full"
               value={searchData.to}
               onChange={(e) => handleInputChange(e, 'to')}
             />
             {showSuggestions.to && suggestions.to.length > 0 && (
-              <div className="absolute z-10 w-full bg-white border rounded-md shadow-lg mt-1">
+              <div className="absolute z-20 w-full bg-white border rounded-md shadow-lg mt-1">
                 {suggestions.to.map((suggestion, index) => (
                   <div
                     key={suggestion.navigation.entityId}
@@ -177,11 +213,11 @@ const SearchForm = ({ onSearch }) => {
               </div>
             )}
           </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          {/* Departure Date */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Departure Date
+              Departure
             </label>
             <DatePicker
               selected={searchData.departDate}
@@ -189,35 +225,47 @@ const SearchForm = ({ onSearch }) => {
               minDate={new Date()}
               dateFormat="yyyy-MM-dd"
               className="w-full p-2 border rounded"
-              placeholderText="Select departure date"
+              placeholderText="Select date"
               required
             />
           </div>
+
+          {/* Return Date - Only show if round trip is selected */}
+          {tripType === 'round' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Return
+              </label>
+              <DatePicker
+                selected={searchData.returnDate}
+                onChange={(date) => handleDateChange(date, 'returnDate')}
+                minDate={searchData.departDate}
+                dateFormat="yyyy-MM-dd"
+                className="w-full p-2 border rounded"
+                placeholderText="Select return"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Secondary options - 2 columns */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Return Date (Optional)
+              Cabin Class
             </label>
-            <DatePicker
-              selected={searchData.returnDate}
-              onChange={(date) => handleDateChange(date, 'returnDate')}
-              minDate={searchData.departDate}
-              dateFormat="yyyy-MM-dd"
+            <select 
               className="w-full p-2 border rounded"
-              placeholderText="Select return date"
-            />
+              value={searchData.cabinClass}
+              onChange={(e) => setSearchData({...searchData, cabinClass: e.target.value})}
+            >
+              <option value="">Any Class</option>
+              <option value="economy">Economy</option>
+              <option value="premium_economy">Premium Economy</option>
+              <option value="business">Business</option>
+              <option value="first">First Class</option>
+            </select>
           </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <select 
-            className="p-2 border rounded"
-            value={searchData.cabinClass}
-            onChange={(e) => setSearchData({...searchData, cabinClass: e.target.value})}
-          >
-            <option value="economy">Economy</option>
-            <option value="premium">Premium Economy</option>
-            <option value="business">Business</option>
-            <option value="first">First Class</option>
-          </select>
           <input
             type="number"
             min="1"
