@@ -41,3 +41,30 @@ export const searchFlights = async (searchParams) => {
     throw error;
   }
 };
+
+// Add this new function to your existing apiService.js
+
+export const searchAirports = async (query) => {
+  if (!query || query.length < 2) return [];
+
+  const options = {
+    method: 'GET',
+    url: 'https://sky-scrapper.p.rapidapi.com/api/v1/flights/searchAirport',
+    params: {
+      query: query,
+      locale: 'en-US'
+    },
+    headers: {
+      'x-rapidapi-key': import.meta.env.VITE_RAPID_API_KEY,
+      'x-rapidapi-host': 'sky-scrapper.p.rapidapi.com'
+    }
+  };
+
+  try {
+    const response = await axios.request(options);
+    return response.data.data || [];
+  } catch (error) {
+    console.error('Airport search error:', error);
+    return [];
+  }
+};
