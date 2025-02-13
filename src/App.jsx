@@ -6,22 +6,28 @@ const App = () => {
   const [searchResults, setSearchResults] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSearchResults = (results) => {
-    console.log('Raw Search Results:', results);
-    
-    if (!results) {
-      console.warn('No results received');
-      return;
-    }
+  const handleSearchResults = async (results) => {
+    setIsLoading(true);
+    try {
+      console.log('Raw Search Results:', results);
+      
+      if (!results) {
+        console.warn('No results received');
+        return;
+      }
 
-    // Handle the new API response format
-    if (results.status && results.data) {
-      console.log('Valid results structure found:', results.data.itineraries?.length, 'items');
-      setSearchResults(results);
-      return;
+      // Handle the new API response format
+      if (results.status && results.data?.itineraries) {
+        console.log('Valid results structure found:', results.data.itineraries.length, 'items');
+        setSearchResults(results);
+      } else {
+        console.warn('Invalid results structure:', results);
+      }
+    } catch (error) {
+      console.error('Error processing search results:', error);
+    } finally {
+      setIsLoading(false);
     }
-
-    console.warn('Invalid results structure:', results);
   };
 
   return (

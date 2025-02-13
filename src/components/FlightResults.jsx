@@ -3,9 +3,20 @@ import PropTypes from 'prop-types';
 
 const FlightResults = ({ flights }) => {
   console.log('FlightResults props:', flights);
-  
-  if (!flights?.data?.itineraries) {
-    return <div className="text-center text-gray-600">No flights available</div>;
+
+  // Early return if flights is not provided
+  if (!flights) {
+    return <div className="text-center text-gray-600">Loading flights...</div>;
+  }
+
+  // Check for data property
+  if (!flights.data) {
+    return <div className="text-center text-gray-600">No flight data available</div>;
+  }
+
+  // Check for itineraries array
+  if (!Array.isArray(flights.data.itineraries) || flights.data.itineraries.length === 0) {
+    return <div className="text-center text-gray-600">No flights found for this route</div>;
   }
 
   const formatDateTime = (dateTimeStr) => {
@@ -25,6 +36,11 @@ const FlightResults = ({ flights }) => {
 
   return (
     <div className="max-w-6xl mx-auto mt-8 space-y-4">
+      {/* Show total results count */}
+      <div className="text-gray-600 mb-4">
+        Found {flights.data.itineraries.length} flights
+      </div>
+
       {flights.data.itineraries.map((itinerary) => (
         <div key={itinerary.id} className="bg-white p-6 rounded-lg shadow-md">
           <div className="flex justify-between items-center mb-4">
@@ -104,38 +120,51 @@ const FlightResults = ({ flights }) => {
   );
 };
 
+// Update PropTypes to be more specific
 FlightResults.propTypes = {
   flights: PropTypes.shape({
-    status: PropTypes.bool,
+    status: PropTypes.bool.isRequired,
     data: PropTypes.shape({
-      itineraries: PropTypes.arrayOf(PropTypes.shape({
-        id: PropTypes.string,
-        price: PropTypes.shape({
-          formatted: PropTypes.string
-        }),
-        legs: PropTypes.arrayOf(PropTypes.shape({
-          id: PropTypes.string,
-          origin: PropTypes.shape({
-            name: PropTypes.string,
-            city: PropTypes.string
-          }),
-          destination: PropTypes.shape({
-            name: PropTypes.string,
-            city: PropTypes.string
-          }),
-          durationInMinutes: PropTypes.number,
-          departure: PropTypes.string,
-          arrival: PropTypes.string,
-          carriers: PropTypes.shape({
-            marketing: PropTypes.arrayOf(PropTypes.shape({
-              name: PropTypes.string,
-              logoUrl: PropTypes.string
-            }))
-          }),
-          segments: PropTypes.array
-        }))
-      }))
-    })
+      itineraries: PropTypes.arrayOf(
+        PropTypes.shape({
+          id: PropTypes.string.isRequired,
+          price: PropTypes.shape({
+            formatted: PropTypes.string.isRequired,
+            raw: PropTypes.number.isRequired
+          }).isRequired,
+          legs: PropTypes.arrayOf(
+            PropTypes.shape({
+              id: PropTypes.string.isRequired,
+              origin: PropTypes.shape({
+                name: PropTypes.string.isRequired,
+                city: PropTypes.string.isRequired,
+                id: PropTypes.string.isRequired,
+                displayCode: PropTypes.string.isRequired
+              }).isRequired,
+              destination: PropTypes.shape({
+                name: PropTypes.string.isRequired,
+                city: PropTypes.string.isRequired,
+                id: PropTypes.string.isRequired,
+                displayCode: PropTypes.string.isRequired
+              }).isRequired,
+              durationInMinutes: PropTypes.number.isRequired,
+              departure: PropTypes.string.isRequired,
+              arrival: PropTypes.string.isRequired,
+              stopCount: PropTypes.number.isRequired,
+              carriers: PropTypes.shape({
+                marketing: PropTypes.arrayOf(
+                  PropTypes.shape({
+                    id: PropTypes.number.isRequired,
+                    name: PropTypes.string.isRequired,
+                    logoUrl: PropTypes.string.isRequired
+                  })
+                ).isRequired
+              }).isRequired
+            })
+          ).isRequired
+        })
+      ).isRequired
+    }).isRequired
   })
 };
 
