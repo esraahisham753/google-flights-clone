@@ -1,20 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { searchFlightsSorted } from '../utils/apiService';
 
-const FlightResults = ({ flights }) => {
+const FlightResults = ({ flights, searchParams }) => {
+  // Add debug logging
+  console.log('FlightResults props:', {
+    hasFlights: !!flights,
+    flightCount: flights?.data?.itineraries?.length,
+    hasSearchParams: !!searchParams
+  });
+
   const [displayCount, setDisplayCount] = useState(3);
+  const [activeTab, setActiveTab] = useState('best');
+  const [cheapestFlights, setCheapestFlights] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Early return if flights is not provided
-  if (!flights || !flights.data || !flights.data.itineraries) {
+  // Update useEffect to depend on searchParams
+  useEffect(() => {
+    if (activeTab === 'cheapest' && !cheapestFlights && searchParams) {
+      fetchCheapestFlights();
+    }
+  }, [activeTab, searchParams]); // Add searchParams to dependencies
+
+  const fetchCheapestFlights = async () => {
+    if (!searchParams) {
+      console.error('Search parameters are missing');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const results = await searchFlightsSorted(searchParams, 'price_low');
+      setCheapestFlights(results);
+    } catch (error) {
+      console.error('Error fetching cheapest flights:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Early return if no flights data
+  if (!flights?.data?.itineraries) {
     return <div className="text-center text-gray-600">Loading flights...</div>;
   }
 
-  const visibleFlights = flights.data.itineraries.slice(0, displayCount);
-  const hasMoreFlights = displayCount < flights.data.itineraries.length;
+  const currentFlights = activeTab === 'best' ? flights : cheapestFlights;
+  const visibleFlights = currentFlights?.data?.itineraries?.slice(0, displayCount) || [];
+  const hasMoreFlights = currentFlights?.data?.itineraries?.length > displayCount;
 
-  const handleShowMore = () => {
-    setDisplayCount(flights.data.itineraries.length);
-  };
+  // Get the cheapest price for the tab
+  const cheapestPrice = flights.data.itineraries.reduce((min, flight) => {
+    const price = parseFloat(flight.price.raw);
+    return price < min ? price : min;
+  }, parseFloat(flights.data.itineraries[0].price.raw));
 
   const formatDateTime = (dateTimeStr) => {
     try {
@@ -55,11 +93,44 @@ const FlightResults = ({ flights }) => {
 
   return (
     <div className="max-w-6xl mx-auto mt-8 space-y-4">
-      <div className="text-gray-600 mb-4">
-        Found {flights.data.itineraries.length} flights
+      {/* Tabs */}
+      <div className="flex border-b">
+        <button
+          className={`px-6 py-3 text-sm font-medium ${
+            activeTab === 'best'
+              ? 'border-b-2 border-blue-500 text-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          onClick={() => setActiveTab('best')}
+        >
+          Best
+        </button>
+        <button
+          className={`px-6 py-3 text-sm font-medium ${
+            activeTab === 'cheapest'
+              ? 'border-b-2 border-blue-500 text-blue-600'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+          onClick={() => setActiveTab('cheapest')}
+        >
+          Cheapest (from ${cheapestPrice})
+        </button>
       </div>
 
-      {visibleFlights.map((itinerary) => (
+      {/* Results Count */}
+      <div className="text-gray-600 mb-4">
+        Found {currentFlights?.data?.itineraries?.length || 0} flights
+      </div>
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="text-center py-4">
+          <p>Loading {activeTab === 'cheapest' ? 'cheapest' : 'best'} flights...</p>
+        </div>
+      )}
+
+      {/* Flight Results */}
+      {!isLoading && visibleFlights.map((itinerary) => (
         <div key={itinerary.id || Math.random()} className="bg-white p-6 rounded-lg shadow-md">
           <div className="flex justify-between items-center mb-4">
             <div className="text-2xl font-bold text-blue-600">
@@ -128,18 +199,24 @@ const FlightResults = ({ flights }) => {
         </div>
       ))}
 
+      {/* Show More Button */}
       {hasMoreFlights && (
         <div className="text-center mt-6">
           <button
-            onClick={handleShowMore}
+            onClick={() => setDisplayCount(prev => prev + 3)}
             className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg transition duration-200"
           >
-            Show {flights.data.itineraries.length - displayCount} More Flights
+            Show {currentFlights.data.itineraries.length - displayCount} More Flights
           </button>
         </div>
       )}
     </div>
   );
+};
+
+FlightResults.propTypes = {
+  flights: PropTypes.object.isRequired,
+  searchParams: PropTypes.object.isRequired
 };
 
 export default FlightResults;

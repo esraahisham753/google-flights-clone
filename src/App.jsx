@@ -6,8 +6,9 @@ import skyBanner from '../src/assets/sky-banner.jpg'; // Update path as needed
 const App = () => {
   const [searchResults, setSearchResults] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentSearchParams, setCurrentSearchParams] = useState(null);
 
-  const handleSearchResults = async (results) => {
+  const handleSearchResults = async (results, params) => {
     setIsLoading(true);
     try {
       console.log('Raw Search Results:', results);
@@ -21,6 +22,7 @@ const App = () => {
       if (results.status && results.data?.itineraries) {
         console.log('Valid results structure found:', results.data.itineraries.length, 'items');
         setSearchResults(results);
+        setCurrentSearchParams(params); // Store the search parameters
       } else {
         console.warn('Invalid results structure:', results);
       }
@@ -30,6 +32,14 @@ const App = () => {
       setIsLoading(false);
     }
   };
+
+  // Add debug logging
+  console.log('Current render state:', {
+    hasResults: !!searchResults,
+    hasItineraries: !!searchResults?.data?.itineraries,
+    hasParams: !!currentSearchParams,
+    isLoading
+  });
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -62,15 +72,18 @@ const App = () => {
               <p>Searching for flights...</p>
             </div>
           )}
-          {searchResults && searchResults.data?.itineraries && (
+          {!isLoading && searchResults?.data?.itineraries && (
             <div className="mt-4">
-              <h2 className="text-xl font-semibold mb-2">
-                Found {searchResults.data.itineraries.length} Flights
-              </h2>
               <FlightResults 
                 flights={searchResults} 
+                searchParams={currentSearchParams}
                 onSelectFlight={(flight) => console.log('Selected flight:', flight)}
               />
+            </div>
+          )}
+          {!isLoading && searchResults && !searchResults.data?.itineraries && (
+            <div className="text-center py-4 text-red-600">
+              No flights found for your search criteria
             </div>
           )}
         </div>

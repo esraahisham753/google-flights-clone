@@ -11,7 +11,7 @@ export const searchFlights = async (searchParams) => {
 
     const options = {
       method: 'GET',
-      url: 'https://sky-scrapper.p.rapidapi.com/api/v1/flights/searchFlights', // Updated to v1
+      url: 'https://sky-scrapper.p.rapidapi.com/api/v1/flights/searchFlights',
       params: {
         originSkyId: searchParams.from.toUpperCase(),
         destinationSkyId: searchParams.to.toUpperCase(),
@@ -19,7 +19,9 @@ export const searchFlights = async (searchParams) => {
         destinationEntityId: searchParams.toEntityId || '27537542',
         date: formattedDate,
         cabinClass: searchParams.cabinClass || 'economy',
-        adults: searchParams.passengers?.toString() || '1',
+        adults: searchParams.adults?.toString() || '1',
+        childrens: searchParams.childrens?.toString() || '0',
+        infants: searchParams.infants?.toString() || '0',
         sortBy: 'best',
         currency: 'USD',
         market: 'en-US',
@@ -66,5 +68,45 @@ export const searchAirports = async (query) => {
   } catch (error) {
     console.error('Airport search error:', error);
     return [];
+  }
+};
+
+// Add a new function for searching flights with different sort options
+export const searchFlightsSorted = async (searchParams, sortBy = 'best') => {
+  try {
+    const formattedDate = searchParams.departDate instanceof Date 
+      ? searchParams.departDate.toISOString().split('T')[0]
+      : searchParams.departDate;
+
+    const options = {
+      method: 'GET',
+      url: 'https://sky-scrapper.p.rapidapi.com/api/v1/flights/searchFlights',
+      params: {
+        originSkyId: searchParams.from.toUpperCase(),
+        destinationSkyId: searchParams.to.toUpperCase(),
+        originEntityId: searchParams.fromEntityId || '27544008',
+        destinationEntityId: searchParams.toEntityId || '27537542',
+        date: formattedDate,
+        cabinClass: searchParams.cabinClass || 'economy',
+        adults: searchParams.adults?.toString() || '1',
+        childrens: searchParams.childrens?.toString() || '0',
+        infants: searchParams.infants?.toString() || '0',
+        sortBy: sortBy,
+        currency: 'USD',
+        market: 'en-US',
+        countryCode: 'US'
+      },
+      headers: {
+        'x-rapidapi-key': API_KEY,
+        'x-rapidapi-host': API_HOST
+      }
+    };
+
+    console.log('API Request for sorted flights:', options);
+    const response = await axios.request(options);
+    return response.data;
+  } catch (error) {
+    console.error('Error searching sorted flights:', error);
+    throw error;
   }
 };
