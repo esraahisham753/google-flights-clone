@@ -2,21 +2,48 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 
 const FlightResults = ({ flights, searchParams }) => {
-  // Add debug logging
-  console.log('FlightResults props:', {
+  // Add debug logging at component level
+  console.log('FlightResults Component Render:', {
     hasFlights: !!flights,
-    flightCount: flights?.data?.itineraries?.length,
-    hasSearchParams: !!searchParams
+    hasData: !!flights?.data,
+    hasItineraries: !!flights?.data?.itineraries,
+    itinerariesLength: flights?.data?.itineraries?.length
   });
 
   const [displayCount, setDisplayCount] = useState(3);
   const [activeTab, setActiveTab] = useState('best');
-  const [isLoading, setIsLoading] = useState(false);
 
-  // Sort flights based on active tab
+  // Add formatting utility functions
+  const formatDateTime = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const formatDuration = (minutes) => {
+    if (!minutes) return '';
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
+  };
+
+  // Update the sortedFlights useMemo with better logging
   const sortedFlights = useMemo(() => {
-    if (!flights?.data?.itineraries) return [];
+    console.log('sortedFlights calculation:', {
+      flights,
+      hasItineraries: !!flights?.data?.itineraries,
+      itinerariesLength: flights?.data?.itineraries?.length
+    });
     
+    if (!flights?.data?.itineraries) {
+      console.warn('No itineraries found in flights data');
+      return [];
+    }
+
     const flightsCopy = [...flights.data.itineraries];
     
     if (activeTab === 'cheapest') {
@@ -30,16 +57,7 @@ const FlightResults = ({ flights, searchParams }) => {
     return flightsCopy;
   }, [flights, activeTab]);
 
-  // Early return if no flights data
-  if (!flights?.data?.itineraries) {
-    return <div className="text-center text-gray-600">Loading flights...</div>;
-  }
-
-  // Update the currentFlights logic to use sortedFlights
-  const visibleFlights = sortedFlights.slice(0, displayCount);
-  const hasMoreFlights = sortedFlights.length > displayCount;
-
-  // Calculate cheapest price from original flights
+  // Calculate cheapest price for the tab label
   const cheapestPrice = useMemo(() => {
     if (!flights?.data?.itineraries?.length) return 0;
     
@@ -49,48 +67,68 @@ const FlightResults = ({ flights, searchParams }) => {
     }, parseFloat(flights.data.itineraries[0].price?.raw || 0));
   }, [flights]);
 
-  const formatDateTime = (dateTimeStr) => {
-    try {
-      const date = new Date(dateTimeStr);
-      return date.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-      });
-    } catch (error) {
-      console.error('Date formatting error:', error);
-      return 'Invalid time';
-    }
-  };
-
-  const formatDuration = (minutes) => {
-    if (!minutes || isNaN(minutes)) return 'N/A';
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}h ${mins}m`;
-  };
-
+  // Add the renderCarriers function
   const renderCarriers = (carriers) => {
-    if (!carriers?.marketing?.length) return null;
-    return carriers.marketing.map((carrier) => (
-      <div key={carrier.id} className="flex items-center">
-        {carrier.logoUrl && (
+    // Ensure carriers is an array
+    if (!Array.isArray(carriers) || carriers.length === 0) {
+      return null;
+    }
+  
+    return carriers.map((carrier, index) => (
+      <div key={index} className="flex items-center space-x-2">
+        {carrier.logoUrl ? (
           <img 
             src={carrier.logoUrl} 
             alt={carrier.name}
-            className="w-8 h-8 object-contain"
+            className="h-6 w-auto object-contain"
+            onError={(e) => {
+              e.target.onerror = null; // Prevent infinite loop
+              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(carrier.name)}&background=random`;
+            }}
           />
+        ) : (
+          <div 
+            className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-medium"
+          >
+            {carrier.name.charAt(0)}
+          </div>
         )}
-        <span className="ml-2 text-sm text-gray-600">{carrier.name}</span>
+        <span className="text-sm text-gray-700">{carrier.name}</span>
       </div>
     ));
   };
 
-  // Update the tab click handlers
-  const handleTabClick = (tab) => {
-    setActiveTab(tab);
-    setDisplayCount(3); // Reset display count when switching tabs
-  };
+  // Move the early return after sortedFlights calculation
+  if (!sortedFlights.length) {
+    return (
+      <div className="max-w-6xl mx-auto mt-8">
+        <div className="flex border-b w-full mb-4">
+          {/* Keep the tabs visible even when no flights */}
+          <button
+            className={`flex-1 px-6 py-3 text-sm font-medium ${
+              activeTab === 'best' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'
+            }`}
+            onClick={() => setActiveTab('best')}
+          >
+            Best
+          </button>
+          <button
+            className={`flex-1 px-6 py-3 text-sm font-medium ${
+              activeTab === 'cheapest' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'
+            }`}
+            onClick={() => setActiveTab('cheapest')}
+          >
+            Cheapest
+          </button>
+        </div>
+        <div className="text-center text-gray-600 py-8">No flights found</div>
+      </div>
+    );
+  }
+
+  // Update the currentFlights logic to use sortedFlights
+  const visibleFlights = sortedFlights.slice(0, displayCount);
+  const hasMoreFlights = sortedFlights.length > displayCount;
 
   return (
     <div className="max-w-6xl mx-auto mt-8 space-y-4">
@@ -102,7 +140,7 @@ const FlightResults = ({ flights, searchParams }) => {
               ? 'border-b-2 border-blue-500 text-blue-600'
               : 'text-gray-500 hover:text-gray-700'
           }`}
-          onClick={() => handleTabClick('best')}
+          onClick={() => setActiveTab('best')}
         >
           Best
         </button>
@@ -112,26 +150,18 @@ const FlightResults = ({ flights, searchParams }) => {
               ? 'border-b-2 border-blue-500 text-blue-600'
               : 'text-gray-500 hover:text-gray-700'
           }`}
-          onClick={() => handleTabClick('cheapest')}
+          onClick={() => setActiveTab('cheapest')}
         >
           Cheapest (from ${cheapestPrice})
         </button>
       </div>
 
-      {/* Results Count */}
       <div className="text-gray-600 mb-4">
-        Found {sortedFlights.length || 0} flights
+        Found {sortedFlights.length} flights
       </div>
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="text-center py-4">
-          <p>Loading {activeTab === 'cheapest' ? 'cheapest' : 'best'} flights...</p>
-        </div>
-      )}
-
       {/* Flight Results */}
-      {!isLoading && visibleFlights.map((itinerary) => (
+      {visibleFlights.map((itinerary) => (
         <div key={itinerary.id || Math.random()} className="bg-white p-6 rounded-lg shadow-md">
           <div className="flex justify-between items-center mb-4">
             <div className="text-2xl font-bold text-blue-600">
@@ -153,7 +183,7 @@ const FlightResults = ({ flights, searchParams }) => {
             <div key={leg.id || index} className="border-t pt-4 mt-4 first:border-0 first:pt-0 first:mt-0">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-4">
-                  {renderCarriers(leg.carriers)}
+                  {renderCarriers(leg.carriers.marketing)}
                 </div>
                 <div className="text-sm text-gray-500">
                   {leg.stopCount === 0 ? 'Direct' : `${leg.stopCount} stop${leg.stopCount > 1 ? 's' : ''}`}

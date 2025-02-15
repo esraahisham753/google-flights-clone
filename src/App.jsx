@@ -72,12 +72,17 @@ const App = () => {
               <p>Searching for flights...</p>
             </div>
           )}
-          {!isLoading && searchResults?.data?.itineraries && (
+          {!isLoading && searchResults && (
             <div className="mt-4">
+              {console.log('Rendering FlightResults with:', {
+                hasResults: !!searchResults,
+                hasData: !!searchResults?.data,
+                hasItineraries: !!searchResults?.data?.itineraries,
+                itinerariesLength: searchResults?.data?.itineraries?.length
+              })}
               <FlightResults 
                 flights={searchResults} 
                 searchParams={currentSearchParams}
-                onSelectFlight={(flight) => console.log('Selected flight:', flight)}
               />
             </div>
           )}
